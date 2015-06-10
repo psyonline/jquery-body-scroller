@@ -11,58 +11,58 @@
 	- $._bodyScroller.removeEvent(callback) : 스크롤 이벤트 제거.
 	- $._bodyScroller.on() : 기능 활성화
 	- $._bodyScroller.off() : 기능 비활성화
+	- $._bodyScroller.scrollTo(value [, duration] [, easing] [, complete]) : 스크를 이동. 애니매이션 가능(jQuery.animate와 동일한 형식)
 */
 
 (function($) {
 
 
 	var
+		use = false,
 		ie = navigator.userAgent.match(/(?:msie ([0-9]+)|rv:([0-9\.]+)\) like gecko)/i),
 		webkit = (/applewebkit/i).test(navigator.userAgent),
+		$window = $(window),
 		documentElement = document.documentElement,
+		$documentElement = $(documentElement),
 		lastScrollTop = 0,
 		captured = false,
 		paused = false,
+		wheelDisabled = false,
 		callbacks = [],
-		numCallbacks = 0;
+		numCallbacks = 0,
+		$animator = $({v: 0});
 
 
 	$._bodyScroller = {
-		on: on,
-		off: off,
+		on: function() {
+			paused = false;
+		},
+		off: function() {
+			paused = true;
+		},
 		addEvent: function(callback) {
-			for (var i = 0; i < numCallbacks; i++) {
-				if (callbacks[i] === callback) {
-					return;
-				}
-			}
-			callbacks.push(callback);
-			numCallbacks++;
-			scroll();
+			addEvent(callback);
 		},
 		removeEvent: function(callback) {
-			for (var i = 0; i < numCallbacks; i++) {
-				if (callbacks[i] === callback) {
-					callbacks.splice(i, 1);
-					numCallbacks--;
-					i--;
-				}
-			}
+			removeEvent(callback);
+		},
+		scrollTo: function(value, d, e, c) {
+			(2 > arguments.length) ? setScrollTop(value) : animateTo(value, d, e, c);
 		}
 	};
 
 
 	if ((/win/i).test(navigator.appVersion) && ie) {
-		$(documentElement)
+		$documentElement
 			.on('mousewheel', function(e) {
-				if (paused || !numCallbacks) {
+				if (paused || wheelDisabled || !numCallbacks) {
 					return true;
 				}
 				fix(e.originalEvent.deltaY || e.originalEvent.wheelDelta*-1);
 				e.preventDefault();
 			})
 			.on('keydown', function(e) {
-				if (paused || !numCallbacks) {
+				if (paused || wheelDisabled || !numCallbacks) {
 					return true;
 				}
 				var keyCode = e.keyCode, documentHeight = documentElement.clientHeight, newScrollTop;
@@ -74,10 +74,32 @@
 			.on('keydown', 'input, textarea', function(e) {
 				e.stopPropagation();
 			});
+		use = true;
 	}
 
-	$(window).scroll(scroll);
+	$window.scroll(scroll);
 
+
+	function addEvent(callback) {
+		for (var i = 0; i < numCallbacks; i++) {
+			if (callbacks[i] === callback) {
+				return;
+			}
+		}
+		callbacks.push(callback);
+		numCallbacks++;
+		scroll();
+	}
+
+	function removeEvent(callback) {
+		for (var i = 0; i < numCallbacks; i++) {
+			if (callbacks[i] === callback) {
+				callbacks.splice(i, 1);
+				numCallbacks--;
+				i--;
+			}
+		}
+	}
 
 	function fix(scrollBy) {
 		var newScrollTop = Math.min(getMaxScrollTop(), Math.max(0, getScrollTop()+scrollBy));
@@ -88,6 +110,10 @@
 		}
 	}
 
+	function setScrollTop(value) {
+		 $window.scrollTop(value);
+	}
+
 	function getScrollTop() {
 		return documentElement.scrollTop || document.body && document.body.scrollTop || 0;
 	}
@@ -96,12 +122,69 @@
 		return Math.max(document.body && document.body.scrollHeight, documentElement.scrollHeight)-Math.min(documentElement.offsetHeight, documentElement.clientHeight);
 	}
 
-	function on() {
-		paused = false;
+	function disableWheel() {
+		wheelDisabled = true;
+		$documentElement.bind('mousewheel', disableWheelHandler);
 	}
 
-	function off() {
-		paused = true;
+	function enableWheel() {
+		wheelDisabled = false;
+		$documentElement.unbind('mousewheel', disableWheelHandler);
+	}
+
+	function disableWheelHandler(e) {
+		e.preventDefault();
+	}
+
+	function animateTo(value, d, e, c) {
+
+		var options = {}, key,
+			stepFunction, completeFunction;
+
+		if ($.isPlainObject(d)) {
+			for (key in d) {
+				options[key] = d[key];
+			}
+		} else if (typeof(c) == 'function') {
+			options.duration = d;
+			options.easing = e;
+			options.complete = c;
+		} else if (typeof(e) == 'function') {
+			if (typeof(d) == 'number') {
+				options.duration = d;
+			} else {
+				options.easing = d;
+			}
+			options.complete = e;
+		} else {
+			if (typeof(d) == 'number') {
+				options.duration = d;
+			} else if (typeof(d) == 'string') {
+				options.easing = d;
+			} else if (typeof(d) == 'function') {
+				options.complete = d;
+			}
+		}
+
+		stepFunction = options.step;
+		completeFunction = options.complete;
+
+		options.step = function(v) {
+			v = Math.round(typeof(v) == 'number' ? v : v.target[0].v);
+			use ? fix(v-lastScrollTop) : setScrollTop(v);
+			stepFunction && stepFunction(v);
+		}
+
+		options.complete = function(v) {
+			enableWheel();
+			completeFunction && completeFunction(lastScrollTop);
+		}
+
+		disableWheel();
+
+		$animator[0].v = lastScrollTop;
+		$animator.stop().animate({v: value}, options);
+
 	}
 
 	function scroll(_scrollTop) {

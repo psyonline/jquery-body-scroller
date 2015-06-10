@@ -12,9 +12,17 @@ body:after { position: fixed; left: 0; top: 0; width: 100%; height: 0; content: 
 <body>
 
 <div style="height:5000px;background:#eee;"></div>
-<div style=""></div>
+
+<div style="position:fixed;left:0;bottom:50px;width:100%;text-align:center;">
+	<button onclick="$._bodyScroller.scrollTo(1500);">scrollTo(1500)</button>
+	<button onclick="$._bodyScroller.scrollTo(0);">scrollTo(0)</button>
+	<button id="animate-1">scrollTo(1500)(animate 1)</button>
+	<button id="animate-2">scrollTo(0)(animate 2)</button>
+</div>
 
 <script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="../libs/TweenMax.min.js"></script>
+<script src="../jquery-with-gsap/jquery-with-gsap.js"></script>
 <script src="./jquery-body-scroller.js"></script>
 <script>
 (function() {
@@ -35,6 +43,21 @@ body:after { position: fixed; left: 0; top: 0; width: 100%; height: 0; content: 
 		$tester2.css('top', scrollTop).html('without body scroller<br>top: '+ scrollTop +'px');
 	})
 	.scroll(); // for initialize
+
+
+	// scrollTo animate test
+	$('#animate-1').click(function() {
+		$._bodyScroller.scrollTo(1500, 1500, 'swing', function(value) {
+			console.log('complete');
+		});
+	});
+	$('#animate-2').click(function() {
+		$._bodyScroller.scrollTo(0, {duration: 1000, easing: 'linear',
+			step: function(value) {
+				console.log('step', value);
+			}
+		});
+	});
 
 })();
 </script>
