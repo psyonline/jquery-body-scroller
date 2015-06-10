@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<title> Body Scroller Demo - Fix Internet Explorer's delayed scroll event firing </title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<style>
+body:after { position: fixed; left: 0; top: 0; width: 100%; height: 0; content: ''; } /* chrome bug ? delayed firing without fixed element... */
+</style>
+</head>
+
+<body>
+
+<div style="height:5000px;background:#eee;"></div>
+<div style=""></div>
+
+<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="./jquery-body-scroller.js"></script>
+<script>
+(function() {
+
+	var
+		style = 'position:absolute;left:50%;top:0;width:300px;height:90px;font-family:Verdana;font-size:18px;color:#ccc;text-align:center;line-height:32px;margin-left:-305px;padding-top:20px;background:#000;overflow:hidden;z-index:1000',
+		$tester1 = $('<div style="'+ style +'" />').appendTo(document.body),
+		$tester2 = $('<div style="'+ style +'" />').css('marginLeft', 5).appendTo(document.body);
+
+	// with body scroller
+	$._bodyScroller.addEvent(function(scrollTop, maxScrollTop) {
+		$tester1.css('top', scrollTop).html('with body scroller<br>top: '+ scrollTop +'px');
+	});
+
+	// without body scroller
+	$(window).scroll(function() {
+		var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+		$tester2.css('top', scrollTop).html('without body scroller<br>top: '+ scrollTop +'px');
+	})
+	.scroll(); // for initialize
+
+})();
+</script>
+
+</body>
+</html>
