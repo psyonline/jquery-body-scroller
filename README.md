@@ -9,5 +9,5 @@ Fix Internet Explorer's delayed scroll event firing.
 - $._bodyScroller.on() : 기능 활성화
 - $._bodyScroller.off() : 기능 비활성화
 
-**Demo**
+**Demo**  
 <http://www.psyonline.kr/blog/pages/jquery-body-scroller/demo.html>
